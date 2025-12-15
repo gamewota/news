@@ -1,0 +1,45 @@
+name: Build and Deploy News Site
+
+on:
+  repository_dispatch:
+    types: [news-update]
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: 'Backend API URL to fetch news (optional if stored in secrets)'
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch content from backend
+        env:
+          BACKEND_URL: ${{ github.event.client_payload.backend_url || github.event.inputs.backend_url || secrets.BACKEND_URL }}
+        run: |
+          if [ -z "$BACKEND_URL" ]; then echo "No BACKEND_URL provided"; exit 1; fi
+          node ./scripts/fetch-and-build.js
+
+      - name: Build site
+        run: npm run build
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v2
