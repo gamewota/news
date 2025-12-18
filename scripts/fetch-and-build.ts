@@ -1,10 +1,11 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S node
 import fs from 'fs/promises';
 import path from 'path';
+import { fetchNews } from '../src/lib/fetchNews.ts';
 
 const BACKEND_URL = process.env.BACKEND_URL;
 
-async function ensureDir(dir) {
+async function ensureDir(dir: string) {
   try {
     await fs.mkdir(dir, { recursive: true });
   } catch (e) {
@@ -12,18 +13,12 @@ async function ensureDir(dir) {
   }
 }
 
-function slugify(s) {
+function slugify(s: string) {
   return s
     .toString()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
-}
-
-async function fetchJson(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
-  return res.json();
 }
 
 async function main() {
@@ -33,7 +28,7 @@ async function main() {
   }
 
   console.log('Fetching news from', BACKEND_URL);
-  const items = await fetchJson(BACKEND_URL);
+  const items = await fetchNews(BACKEND_URL, { retries: 3, timeout: 10000 });
   if (!Array.isArray(items)) {
     console.error('Expected an array of news items from backend');
     process.exit(1);
@@ -44,10 +39,10 @@ async function main() {
 
   for (const item of items) {
     const title = item.title || item.name || 'untitled';
-    const slug = item.slug || item.id || slugify(title);
-    const date = item.date || item.published_at || new Date().toISOString();
-    const description = item.description || item.summary || '';
-    const content = item.content || item.body || '';
+    const slug = (item as any).slug || (item as any).id || slugify(title);
+    const date = (item as any).date || (item as any).published_at || new Date().toISOString();
+    const description = (item as any).description || (item as any).summary || '';
+    const content = (item as any).content || (item as any).body || '';
 
     const filename = path.join(outDir, `${slug}.md`);
     const frontmatter = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ndate: "${date}"\ndescription: "${description.replace(/"/g, '\\"')}"\n---\n\n`;
