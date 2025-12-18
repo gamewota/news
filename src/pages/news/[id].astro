@@ -1,0 +1,86 @@
+---
+import '../../styles/style.css'
+import type { NewsDetailResponse } from '../../types/news';
+import { sanitizeHTML } from '../../lib/sanitize';
+import moment from 'moment';
+
+const BACKEND_URL = process.env.PUBLIC_BACKEND_URL || import.meta.env.PUBLIC_BACKEND_URL || 'https://api.example.com';
+
+// Disable prerendering so this dynamic route is served at runtime (SSR/dev)
+export const prerender = false;
+
+const { id } = Astro.params;
+
+let article: NewsDetailResponse['data'] | null = null;
+
+console.log('Id:', id);
+
+
+try {
+	const articleUrl = `${BACKEND_URL}/${id}`;
+	console.log('Fetching article URL:', articleUrl);
+
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+	const res = await fetch(articleUrl, { signal: controller.signal });
+	clearTimeout(timeoutId);
+
+	if (!res.ok) {
+		throw new Error(`HTTP ${res.status} ${res.statusText}`);
+	}
+
+	const body = (await res.json()) as NewsDetailResponse;
+	if (body && body.success && body.data) {
+		article = body.data;
+        console.log('Fetched article:', article);
+	} else {
+		console.warn('Article response shape unexpected or missing data for id:', id, body);
+	}
+} catch (err) {
+	if (err && (err as any).name === 'AbortError') {
+		console.error('Fetch aborted (timeout) while fetching article:', id, err);
+	} else {
+		console.error('Failed to fetch news:', err);
+	}
+}
+
+const sanitizedContent = sanitizeHTML(article?.content || '');
+const formattedDate = moment(article?.created_at).format('DD-MM-YYYY');
+
+
+console.log('Sanitized Content:', sanitizedContent);
+console.log('Formatted Date:', formattedDate);
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{article?.title || 'News Article'}</title>
+</head>
+<body>
+    <main class="container">
+		<div class="news-detail-container">
+			<div class="card-inner-container">
+				<button onclick="history.back()" class="btn"><img src="/arrow-left.svg" alt="Arrow Left" class="btn-arrow"/></button>
+			</div>
+			{article && (
+				<div class="">
+					<div class="card-title-container">
+						<h1 class="news-title">{article.news_type}</h1>
+						<p class="news-date">{formattedDate}</p>
+					</div>
+					<h1 class="news-header-title">{article.title}</h1>
+					{article.header_image && (
+						<img src={article.header_image} class="news-detail-image" alt={article.title}/>
+					)}
+					<div class="article-body" set:html={sanitizedContent} />
+				</div>
+			)}
+
+		</div>
+    </main>
+</body>
+</html>

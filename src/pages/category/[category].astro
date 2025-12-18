@@ -1,18 +1,30 @@
 ---
-import { fetchNews } from '../lib/fetchNews';
-import '../styles/style.css'
-import type { NewsArticle } from '../types/news';
-import { sanitizeHTML, stripAndTruncate } from '../lib/sanitize';
+import { fetchNews } from '../../lib/fetchNews';
+import '../../styles/style.css'
+import type { NewsArticle } from '../../types/news';
+import { sanitizeHTML, stripAndTruncate } from '../../lib/sanitize';
+
+
+
+export function getStaticPaths() {
+  return [
+    { params: { category: "patch" }},
+    { params: { category: "event" }},
+    { params: { category: "maintenance" }},
+  ];
+}
+
+const { category } = Astro.params;
+
 
 const BACKEND_URL = process.env.PUBLIC_BACKEND_URL || import.meta.env.PUBLIC_BACKEND_URL || 'https://api.example.com';
-const category = Astro.url.searchParams.get('category') || ''
+
 
 let items: NewsArticle[] = [];
 
 try {
-
-
-	items = await fetchNews(BACKEND_URL);
+	const fetchUrl = `${BACKEND_URL}?category=${encodeURIComponent(category)}`;
+	items = await fetchNews(fetchUrl);
 	items = items.map((it) => ({
 		...it,
 		sanitizedContent: sanitizeHTML(it.content || ''),
