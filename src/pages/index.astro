@@ -1,3 +1,26 @@
+---
+import { fetchNews } from '../lib/fetchNews';
+import '../styles/style.css'
+import type { NewsArticle } from '../types/news';
+import { sanitizeHTML, stripAndTruncate } from '../lib/sanitize';
+
+const BACKEND_URL = process.env.PUBLIC_BACKEND_URL || import.meta.env.PUBLIC_BACKEND_URL || 'https://api.example.com/news';
+
+let items: NewsArticle[] = [];
+try {
+	items = await fetchNews(BACKEND_URL);
+	// sanitize content for safe server-side rendering
+	items = items.map((it) => ({
+		...it,
+		sanitizedContent: sanitizeHTML(it.content || ''),
+		excerpt: stripAndTruncate(it.content || '', 200),
+	} as any));
+	console.log('Fetched news items:', items.length);
+} catch (err) {
+	console.error('Failed to fetch news:', err);
+}
+---
+
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
@@ -7,6 +30,34 @@
 		<title>Eyelock Studio | JKT48 Beat Festival - News</title>
 	</head>
 	<body>
-		<h1>Astro</h1>
+		<main class="container">
+			<div class="inner-container">
+				<div class="title-container">
+					<h1 class="title">News</h1>
+				</div>
+				<div class="news-list">
+					{items.length === 0 ? (
+						<p>No news articles available at the moment. Please check back later.</p>
+					) : (
+						items.map((item) => (
+							<article class="card">
+								<div class="card-inner">
+									<img src={item.header_image} class="img" alt={item.title}/>
+									<div class="card-content">
+										<div class="card-inner-container">
+											<div class="card-title-container">
+												<h2 class="news-title">{item.title}</h2>
+												<p class="news-date">{new Date(item.created_at || item.date || Date.now()).toLocaleDateString()}</p>
+											</div>
+											<p class="news-excerpt">{item.excerpt}</p>
+										</div>
+									</div>
+								</div>
+							</article>
+						))
+					)}
+				</div>
+			</div>
+		</main>
 	</body>
 </html>
