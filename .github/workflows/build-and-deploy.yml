@@ -1,6 +1,8 @@
 name: Build and Deploy News Site
 
 on:
+  push:
+    branches: [main]
   repository_dispatch:
     types: [news-update]
   workflow_dispatch:
@@ -28,7 +30,7 @@ jobs:
           BACKEND_URL: ${{ github.event.client_payload.backend_url || github.event.inputs.backend_url || secrets.BACKEND_URL }}
         run: |
           if [ -z "$BACKEND_URL" ]; then echo "No BACKEND_URL provided"; exit 1; fi
-          node ./scripts/fetch-and-build.js
+          npm run fetch
 
       - name: Build site
         run: npm run build
