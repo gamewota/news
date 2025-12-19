@@ -34,10 +34,10 @@ jobs:
 
       - name: Fetch content from backend
         env:
-          BACKEND_URL: ${{ github.event.client_payload.backend_url || github.event.inputs.backend_url || secrets.BACKEND_URL }}
+          PUBLIC_BACKEND_URL: ${{ github.event.client_payload.backend_url || github.event.inputs.backend_url || secrets.PUBLIC_BACKEND_URL }}
         run: |
-          if [ -z "$BACKEND_URL" ]; then
-            echo "No BACKEND_URL provided"
+          if [ -z "$PUBLIC_BACKEND_URL" ]; then
+            echo "No PUBLIC_BACKEND_URL provided"
             exit 1
           fi
           npm run fetch
