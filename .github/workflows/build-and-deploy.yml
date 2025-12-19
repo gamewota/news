@@ -23,6 +23,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Determine PUBLIC_BACKEND_URL
+        run: |
+          echo "Determining PUBLIC_BACKEND_URL"
+          # Priority: dispatch payload -> workflow input -> repository secret -> .env
+          if [ -n "${{ github.event.client_payload.backend_url }}" ]; then
+            echo "PUBLIC_BACKEND_URL=${{ github.event.client_payload.backend_url }}" >> $GITHUB_ENV
+            echo "PUBLIC_BACKEND_URL_SOURCE=dispatch_payload" >> $GITHUB_ENV
+          elif [ -n "${{ github.event.inputs.backend_url }}" ]; then
+            echo "PUBLIC_BACKEND_URL=${{ github.event.inputs.backend_url }}" >> $GITHUB_ENV
+            echo "PUBLIC_BACKEND_URL_SOURCE=workflow_input" >> $GITHUB_ENV
+          elif [ -n "${{ secrets.PUBLIC_BACKEND_URL }}" ]; then
+            # Use secret (preferred over .env). Do NOT print the secret value.
+            echo "PUBLIC_BACKEND_URL=${{ secrets.PUBLIC_BACKEND_URL }}" >> $GITHUB_ENV
+            echo "PUBLIC_BACKEND_URL_SOURCE=repo_secret" >> $GITHUB_ENV
+          elif [ -f .env ]; then
+            value=$(grep '^PUBLIC_BACKEND_URL' .env | head -n1 | cut -d= -f2- | tr -d '"')
+            if [ -n "$value" ]; then
+              echo "PUBLIC_BACKEND_URL=$value" >> $GITHUB_ENV
+              echo "PUBLIC_BACKEND_URL_SOURCE=repo_env_file" >> $GITHUB_ENV
+            fi
+          else
+            echo "PUBLIC_BACKEND_URL_SOURCE=not_set" >> $GITHUB_ENV
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -33,8 +57,6 @@ jobs:
         run: npm ci
 
       - name: Fetch content from backend
-        env:
-          PUBLIC_BACKEND_URL: ${{ github.event.client_payload.backend_url || github.event.inputs.backend_url || secrets.PUBLIC_BACKEND_URL }}
         run: |
           if [ -z "$PUBLIC_BACKEND_URL" ]; then
             echo "No PUBLIC_BACKEND_URL provided"
