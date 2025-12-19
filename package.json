@@ -8,9 +8,12 @@
     "preview": "astro preview",
     "astro": "astro",
     "fetch": "ts-node --esm ./scripts/fetch-and-build.ts",
-    "fetch-and-build": "npm run fetch && npm run build"
+    "fetch-and-build": "npm run fetch && npm run build",
+    "docker:build": "docker build -t fanbase-news:latest .",
+    "docker:run": "docker run --rm -e PUBLIC_BACKEND_URL=\"$PUBLIC_BACKEND_URL\" -p 8080:8080 fanbase-news:latest"
   },
   "dependencies": {
+    "@astrojs/node": "^9.5.1",
     "astro": "^5.16.5",
     "dompurify": "^2.5.8",
     "jsdom": "^22.1.0",
