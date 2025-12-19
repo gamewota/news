@@ -5,6 +5,7 @@ import node from '@astrojs/node';
 
 // https://astro.build/config
 export default defineConfig({
+  base: '/news',
   adapter: node({
     mode: 'standalone'
   })
